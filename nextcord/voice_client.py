@@ -234,14 +234,12 @@ class VoiceClient(VoiceProtocol):
         self._player: Optional[AudioPlayer] = None
         self.encoder: Encoder = MISSING
         self._lite_nonce: int = 0
+        self._incr_nonce: int = 0
         self.ws: DiscordVoiceWebSocket = MISSING
 
+
     warn_nacl = not has_nacl
-    supported_modes: Tuple[SupportedModes, ...] = (
-        "xsalsa20_poly1305_lite",
-        "xsalsa20_poly1305_suffix",
-        "xsalsa20_poly1305",
-    )
+    supported_modes: Tuple[SupportedModes, ...] = ("aead_xchacha20_poly1305_rtpsize",)
 
     @property
     def guild(self) -> Optional[Guild]:
@@ -338,6 +336,14 @@ class VoiceClient(VoiceProtocol):
             await ws.poll_event()
         self._connected.set()
         return ws
+
+    def _encrypt_aead_xchacha20_poly1305_rtpsize(self, header: bytes, data) -> bytes:
+        box = nacl.secret.Aead(bytes(self.secret_key))
+        nonce = bytearray(24)
+        nonce[:4] = struct.pack(">I", self._incr_nonce)
+        self.checked_add("_incr_nonce", 1, 4294967295)
+        return header + box.encrypt(bytes(data), bytes(header), bytes(nonce)).ciphertext + nonce[:4]
+
 
     async def connect(self, *, reconnect: bool, timeout: float) -> None:
         _log.info("Connecting to voice...")
