@@ -669,6 +669,7 @@ class VoiceClient(VoiceProtocol):
 
         self.checked_add("sequence", 1, 65535)
         encoded_data = self.encoder.encode(data, self.encoder.SAMPLES_PER_FRAME) if encode else data
+        print("OPUS FRAME SIZE:", len(encoded_data))
         packet = self._get_voice_packet(encoded_data)
         try:
             self.socket.sendto(packet, (self.endpoint_ip, self.voice_port))
