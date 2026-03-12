@@ -821,7 +821,7 @@ class DiscordVoiceWebSocket:
                 "token": state.token,
                 "server_id": str(state.server_id),
                 "session_id": state.session_id,
-                "seq_ack": self.seq_ack,
+                "seq_ack": self.seq_ack
             },
         }
         await self.send_as_json(payload)
@@ -835,6 +835,7 @@ class DiscordVoiceWebSocket:
                 "user_id": str(state.user.id),
                 "session_id": state.session_id,
                 "token": state.token,
+                "video": False
             },
         }
         await self.send_as_json(payload)
@@ -848,7 +849,7 @@ class DiscordVoiceWebSocket:
         hook: Optional[Callable[..., Awaitable[None]]] = None,
     ):
         """Creates a voice websocket for the :class:`VoiceClient`."""
-        gateway = f"wss://{client.endpoint}/?v=8"
+        gateway = f"wss://{client.endpoint}/?v=9"
         http = client._state.http
         socket = await http.ws_connect(gateway, compress=15)
         ws = cls(socket, loop=client.loop, hook=hook)
