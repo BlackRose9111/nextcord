@@ -663,7 +663,7 @@ class VoiceClient(VoiceProtocol):
         """
 
         self.checked_add("sequence", 1, 65535)
-        print("ENCODE FLAG:", encode)
+        print("PCM FRAME SIZE:", len(data))
         encoded_data = self.encoder.encode(data, self.encoder.SAMPLES_PER_FRAME) if encode else data
         packet = self._get_voice_packet(encoded_data)
         try:
