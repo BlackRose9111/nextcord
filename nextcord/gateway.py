@@ -863,8 +863,8 @@ class DiscordVoiceWebSocket:
 
         if resume:
             await ws.resume()
-        else:
-            await ws.identify()
+        #else:
+        #   await ws.identify()
 
         return ws
 
@@ -914,6 +914,7 @@ class DiscordVoiceWebSocket:
             interval = data["heartbeat_interval"] / 1000.0
             self._keep_alive = VoiceKeepAliveHandler(ws=self, interval=min(interval, 5.0))
             self._keep_alive.start()
+            await self.identify()
 
         if self._hook is not None:
             await self._hook(self, msg)
