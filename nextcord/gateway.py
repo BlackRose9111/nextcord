@@ -820,7 +820,7 @@ class DiscordVoiceWebSocket:
             "op": self.RESUME,
             "d": {
                 "token": state.token,
-                "guild_id": str(state.server_id),
+                "server_id": str(state.server_id),
                 "session_id": state.session_id,
                 "seq_ack": self.seq_ack
             },
@@ -833,7 +833,7 @@ class DiscordVoiceWebSocket:
         payload = {
             "op": self.IDENTIFY,
             "d": {
-                "guild_id": str(state.server_id),
+                "server_id": str(state.server_id),
                 "user_id": str(state.user.id),
                 "session_id": state.session_id,
                 "token": state.token,
