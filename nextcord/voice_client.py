@@ -663,9 +663,9 @@ class VoiceClient(VoiceProtocol):
         """
 
         self.checked_add("sequence", 1, 65535)
+        print("ENCODE FLAG:", encode)
         encoded_data = self.encoder.encode(data, self.encoder.SAMPLES_PER_FRAME) if encode else data
         packet = self._get_voice_packet(encoded_data)
-        print("packet length", len(packet))
         try:
             self.socket.sendto(packet, (self.endpoint_ip, self.voice_port))
         except BlockingIOError:
