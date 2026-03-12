@@ -840,6 +840,7 @@ class DiscordVoiceWebSocket:
                 "video": False
             },
         }
+        print(payload)
         await self.send_as_json(payload)
 
     @classmethod
