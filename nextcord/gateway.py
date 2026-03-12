@@ -408,6 +408,7 @@ class DiscordWebSocket:
 
     async def identify(self) -> None:
         """Sends the IDENTIFY packet."""
+
         state = self._connection
 
         payload = {
@@ -827,6 +828,7 @@ class DiscordVoiceWebSocket:
         await self.send_as_json(payload)
 
     async def identify(self) -> None:
+        print("VOICE IDENTIFY SENT")
         state = self._connection
         payload = {
             "op": self.IDENTIFY,
