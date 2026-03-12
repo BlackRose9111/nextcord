@@ -891,6 +891,7 @@ class DiscordVoiceWebSocket:
         await self.send_as_json(payload)
 
     async def received_message(self, msg: Dict[str, Any]) -> None:
+        print("VOICE WS MESSAGE:", msg)
         _log.debug("Voice websocket frame received: %s", msg)
         op: int = msg["op"]
         data: Dict[str, Any] = msg["d"]
