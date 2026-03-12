@@ -528,7 +528,7 @@ class VoiceClient(VoiceProtocol):
 
         # Formulate rtp header
         header[0] = 0x80
-        header[1] = 0x6F
+        header[1] = 0x78
         struct.pack_into(">H", header, 2, self.sequence)
         struct.pack_into(">I", header, 4, self.timestamp)
         struct.pack_into(">I", header, 8, self.ssrc)
@@ -668,8 +668,8 @@ class VoiceClient(VoiceProtocol):
         """
 
         self.checked_add("sequence", 1, 65535)
+        print("PCM SAMPLE:", data[:16])
         encoded_data = self.encoder.encode(data, self.encoder.SAMPLES_PER_FRAME) if encode else data
-        print("OPUS FRAME SIZE:", len(encoded_data))
         packet = self._get_voice_packet(encoded_data)
         try:
             self.socket.sendto(packet, (self.endpoint_ip, self.voice_port))
