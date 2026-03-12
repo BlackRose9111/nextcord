@@ -837,7 +837,8 @@ class DiscordVoiceWebSocket:
                 "user_id": str(state.user.id),
                 "session_id": state.session_id,
                 "token": state.token,
-                "video": False
+                "video": False,
+                "max_dave_protocol_version": 1
             },
         }
         print(payload)
