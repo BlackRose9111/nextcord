@@ -528,7 +528,7 @@ class VoiceClient(VoiceProtocol):
 
         # Formulate rtp header
         header[0] = 0x80
-        header[1] = 0x78
+        header[1] = 0x6F
         struct.pack_into(">H", header, 2, self.sequence)
         struct.pack_into(">I", header, 4, self.timestamp)
         struct.pack_into(">I", header, 8, self.ssrc)
