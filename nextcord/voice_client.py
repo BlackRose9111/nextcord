@@ -529,7 +529,6 @@ class VoiceClient(VoiceProtocol):
         struct.pack_into(">I", header, 8, self.ssrc)
 
         encrypt_packet = getattr(self, "_encrypt_" + self.mode)
-        print("ENCRYPTION MODE USED:", self.mode)
         return encrypt_packet(header, data)
 
     def _encrypt_xsalsa20_poly1305(self, header: bytes, data) -> bytes:
@@ -666,6 +665,7 @@ class VoiceClient(VoiceProtocol):
         self.checked_add("sequence", 1, 65535)
         encoded_data = self.encoder.encode(data, self.encoder.SAMPLES_PER_FRAME) if encode else data
         packet = self._get_voice_packet(encoded_data)
+        print("packet length", len(packet))
         try:
             self.socket.sendto(packet, (self.endpoint_ip, self.voice_port))
         except BlockingIOError:
