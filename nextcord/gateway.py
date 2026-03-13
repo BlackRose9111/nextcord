@@ -922,6 +922,7 @@ class DiscordVoiceWebSocket:
 
         # ---- DAVE / MLS handling ----
         elif op == 15:  # proposals
+            print("MLS message:", data)
             if vc._dave_session is not None and "proposals" in data:
                 proposals = bytes(data["proposals"])
                 vc._dave_session.process_proposals(proposals, {str(vc.user.id)})
