@@ -692,6 +692,7 @@ class VoiceClient(VoiceProtocol):
         encoded_data = self.encoder.encode(data, self.encoder.SAMPLES_PER_FRAME) if encode else data
 
         # --- DAVE encryption ---
+        print(self._dave_session.has_established_group())
         if (
                 self._dave_encryptor is not None
                 and self._dave_session is not None
