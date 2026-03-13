@@ -990,12 +990,12 @@ class DiscordVoiceWebSocket:
             vc._dave_session = dave.Session()
             vc._dave_session.init(
                 vc.secure_frames_version,
-                int(vc.media_session_id[:8], 16),  # group id
+                int(vc.media_session_id[:8], 16),
                 str(vc.user.id)
             )
 
             vc._dave_encryptor = dave.Encryptor()
-
+            vc._dave_encryptor.assign_ssrc_to_codec(vc.ssrc, dave.Codec.opus)
         await self.speak(SpeakingState.none)
 
     async def poll_event(self) -> None:
