@@ -695,11 +695,14 @@ class VoiceClient(VoiceProtocol):
         encoded_data = self.encoder.encode(data, self.encoder.SAMPLES_PER_FRAME) if encode else data
 
         # --- DAVE encryption ---
-        if self._dave_encryptor is not None:
+        if (
+                self._dave_encryptor is not None
+                and self._dave_session is not None
+                and self._dave_session.has_established_group()
+        ):
             encrypted = self._dave_encryptor.encrypt(dave.MediaType.audio, self.ssrc, encoded_data)
             if encrypted is not None:
                 encoded_data = encrypted
-
         packet = self._get_voice_packet(encoded_data)
 
         try:
