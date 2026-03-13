@@ -691,8 +691,17 @@ class VoiceClient(VoiceProtocol):
             Encoding the data failed.
         """
         self.checked_add("sequence", 1, 65535)
+
         encoded_data = self.encoder.encode(data, self.encoder.SAMPLES_PER_FRAME) if encode else data
+
+        # --- DAVE encryption ---
+        if self._dave_encryptor is not None:
+            encrypted = self._dave_encryptor.encrypt(dave.MediaType.audio, self.ssrc, encoded_data)
+            if encrypted is not None:
+                encoded_data = encrypted
+
         packet = self._get_voice_packet(encoded_data)
+
         try:
             self.socket.sendto(packet, (self.endpoint_ip, self.voice_port))
         except BlockingIOError:
