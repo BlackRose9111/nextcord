@@ -339,8 +339,19 @@ class VoiceClient(VoiceProtocol):
     async def connect_websocket(self) -> DiscordVoiceWebSocket:
         ws = await DiscordVoiceWebSocket.from_client(self)
         self._connected.clear()
+
+        # --- DAVE initialization ---
+        self._dave_session = dave.Session()
+        self._dave_session.init(1, self.ssrc, str(self.user.id))
+
+        self._dave_encryptor = dave.Encryptor()
+        self._dave_encryptor.assign_ssrc_to_codec(self.ssrc, dave.Codec.opus)
+
+        print("DAVE initialized")
+
         while ws.secret_key is None:
             await ws.poll_event()
+
         self._connected.set()
         return ws
 
@@ -352,7 +363,7 @@ class VoiceClient(VoiceProtocol):
 
         return header + box.encrypt(bytes(data), bytes(header), bytes(nonce)).ciphertext + nonce[:4]
 
-    
+
 
     async def connect(self, *, reconnect: bool, timeout: float) -> None:
         _log.info("Connecting to voice...")
