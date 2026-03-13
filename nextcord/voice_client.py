@@ -349,8 +349,16 @@ class VoiceClient(VoiceProtocol):
         return header + box.encrypt(bytes(data), bytes(header), bytes(nonce)).ciphertext + nonce[:4]
 
     def dave_encrypt_frame(self, opus_frame: bytes) -> bytes:
-        print("DAVE FRAME SIZE:", len(opus_frame))
-        return opus_frame
+        # minimal DAVE frame format
+        frame = bytearray()
+
+        # flags (0 = audio frame)
+        frame.append(0)
+
+        # append opus payload
+        frame.extend(opus_frame)
+
+        return bytes(frame)
     async def connect(self, *, reconnect: bool, timeout: float) -> None:
         _log.info("Connecting to voice...")
         self.timeout = timeout
