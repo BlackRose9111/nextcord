@@ -338,16 +338,12 @@ class VoiceClient(VoiceProtocol):
         return ws
 
     def _encrypt_aead_xchacha20_poly1305_rtpsize(self, header: bytes, data) -> bytes:
+        box = nacl.secret.Aead(bytes(self.secret_key))
         nonce = bytearray(24)
         nonce[:4] = struct.pack(">I", self._incr_nonce)
         self.checked_add("_incr_nonce", 1, 4294967295)
 
-        box = nacl.secret.SecretBox(bytes(self.secret_key))
-
-        encrypted = box.encrypt(bytes(data), bytes(nonce))
-        ciphertext = encrypted.ciphertext
-
-        return header + ciphertext + nonce[:4]
+        return header + box.encrypt(bytes(data), bytes(header), bytes(nonce)).ciphertext + nonce[:4]
 
 
     async def connect(self, *, reconnect: bool, timeout: float) -> None:
