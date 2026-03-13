@@ -836,10 +836,7 @@ class DiscordVoiceWebSocket:
                 "server_id": str(state.server_id),
                 "user_id": str(state.user.id),
                 "session_id": state.session_id,
-                "token": state.token,
-                "video": False,
-                "dave_protocol_version" : 1,
-                "max_dave_protocol_version": 1
+                "token": state.token
             },
         }
         print(payload)
@@ -979,7 +976,6 @@ class DiscordVoiceWebSocket:
         # before sending any voice data (and is the real reason why we
         # call this here).
         await self.speak(SpeakingState.none)
-        await self.client_connect()
 
     async def poll_event(self) -> None:
         # This exception is handled up the chain
