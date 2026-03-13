@@ -978,6 +978,11 @@ class DiscordVoiceWebSocket:
         # This also tells Discord our SSRC value, which Discord requires
         # before sending any voice data (and is the real reason why we
         # call this here).
+        if "media_session_id" in data:
+            self._connection.media_session_id = data["media_session_id"]
+        if "secure_frames_version" in data:
+            self._connection.secure_frames_version = data["secure_frames_version"]
+        print("SECURE FRAMES VERSION:", self._connection.secure_frames_version)
         await self.speak(SpeakingState.none)
 
     async def poll_event(self) -> None:
