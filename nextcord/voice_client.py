@@ -551,6 +551,7 @@ class VoiceClient(VoiceProtocol):
 
         # Apply DAVE before RTP encryption
         if self.secure_frames_version is not None:
+            print("DAVE encrypting frame:", len(data))
             data = self.dave_encrypt_frame(data)
 
         encrypt_packet = getattr(self, "_encrypt_" + self.mode)
