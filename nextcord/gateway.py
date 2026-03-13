@@ -979,6 +979,7 @@ class DiscordVoiceWebSocket:
         # before sending any voice data (and is the real reason why we
         # call this here).
         await self.speak(SpeakingState.none)
+        await self.client_connect()
 
     async def poll_event(self) -> None:
         # This exception is handled up the chain
