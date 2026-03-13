@@ -666,9 +666,8 @@ class VoiceClient(VoiceProtocol):
         opus.OpusError
             Encoding the data failed.
         """
-
+        print("AUDIO PACKET SENT")
         self.checked_add("sequence", 1, 65535)
-        print("PCM SAMPLE:", data[:16])
         encoded_data = self.encoder.encode(data, self.encoder.SAMPLES_PER_FRAME) if encode else data
         packet = self._get_voice_packet(encoded_data)
         try:
