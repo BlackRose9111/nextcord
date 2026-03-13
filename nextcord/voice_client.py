@@ -22,6 +22,7 @@ import logging
 import socket
 import struct
 import threading
+import dave
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, Union, cast
 
 from . import opus, utils
@@ -239,6 +240,9 @@ class VoiceClient(VoiceProtocol):
         self.ws: DiscordVoiceWebSocket = MISSING
         self.media_session_id = None
         self.secure_frames_version = None
+        # DAVE support
+        self._dave_session = None
+        self._dave_encryptor = None
 
 
     warn_nacl = not has_nacl
