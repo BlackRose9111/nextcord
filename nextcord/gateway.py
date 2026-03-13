@@ -15,6 +15,7 @@ from collections import deque, namedtuple
 from typing import TYPE_CHECKING, Awaitable, Callable, Dict, List, Optional, Union, cast
 
 import aiohttp
+import dave
 
 from . import utils
 from .activity import BaseActivity
@@ -974,15 +975,27 @@ class DiscordVoiceWebSocket:
     async def load_secret_key(self, data: Dict[str, Any]) -> None:
         _log.info("received secret key for voice connection")
         self.secret_key = self._connection.secret_key = data["secret_key"]
-        # Send a speak command with the "not speaking" state.
-        # This also tells Discord our SSRC value, which Discord requires
-        # before sending any voice data (and is the real reason why we
-        # call this here).
+
         if "media_session_id" in data:
             self._connection.media_session_id = data["media_session_id"]
+
         if "secure_frames_version" in data:
             self._connection.secure_frames_version = data["secure_frames_version"]
+
         print("SECURE FRAMES VERSION:", self._connection.secure_frames_version)
+
+        # --- DAVE initialization ---
+        vc = self._connection
+        if vc.secure_frames_version is not None and vc.media_session_id is not None:
+            vc._dave_session = dave.Session()
+            vc._dave_session.init(
+                vc.secure_frames_version,
+                int(vc.media_session_id[:8], 16),  # group id
+                str(vc.user.id)
+            )
+
+            vc._dave_encryptor = dave.Encryptor()
+
         await self.speak(SpeakingState.none)
 
     async def poll_event(self) -> None:
