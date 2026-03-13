@@ -349,14 +349,34 @@ class VoiceClient(VoiceProtocol):
         return header + box.encrypt(bytes(data), bytes(header), bytes(nonce)).ciphertext + nonce[:4]
 
     def dave_encrypt_frame(self, opus_frame: bytes) -> bytes:
-        # minimal DAVE frame format
+        """
+        Minimal DAVE secure frame implementation.
+        Encrypts an Opus frame before RTP packetization.
+        """
+
+        # AEAD cipher using the session key
+        box = nacl.secret.Aead(bytes(self.secret_key))
+
+        # 24-byte nonce required by XChaCha20
+        nonce = bytearray(24)
+
+        # incrementing frame counter (same pattern used by Discord transport layer)
+        nonce[:4] = struct.pack(">I", self._incr_nonce)
+        self.checked_add("_incr_nonce", 1, 4294967295)
+
+        # encrypt the opus frame
+        encrypted = box.encrypt(opus_frame, None, bytes(nonce))
+
         frame = bytearray()
 
-        # flags (0 = audio frame)
-        frame.append(0)
+        # frame type: audio
+        frame.append(0x00)
 
-        # append opus payload
-        frame.extend(opus_frame)
+        # include the nonce fragment used by the receiver
+        frame.extend(nonce[:4])
+
+        # encrypted payload + auth tag
+        frame.extend(encrypted.ciphertext)
 
         return bytes(frame)
     async def connect(self, *, reconnect: bool, timeout: float) -> None:
@@ -535,12 +555,15 @@ class VoiceClient(VoiceProtocol):
     def _get_voice_packet(self, data):
         header = bytearray(12)
 
-        # Formulate rtp header
         header[0] = 0x80
         header[1] = 0x78
         struct.pack_into(">H", header, 2, self.sequence)
         struct.pack_into(">I", header, 4, self.timestamp)
         struct.pack_into(">I", header, 8, self.ssrc)
+
+        # Apply DAVE before RTP encryption
+        if self.secure_frames_version is not None:
+            data = self.dave_encrypt_frame(data)
 
         encrypt_packet = getattr(self, "_encrypt_" + self.mode)
         return encrypt_packet(header, data)
@@ -677,8 +700,6 @@ class VoiceClient(VoiceProtocol):
         """
         self.checked_add("sequence", 1, 65535)
         encoded_data = self.encoder.encode(data, self.encoder.SAMPLES_PER_FRAME) if encode else data
-        if self.secure_frames_version is not None:
-            encoded_data = self.dave_encrypt_frame(encoded_data)
         packet = self._get_voice_packet(encoded_data)
         try:
             self.socket.sendto(packet, (self.endpoint_ip, self.voice_port))
