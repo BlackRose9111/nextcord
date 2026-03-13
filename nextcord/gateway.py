@@ -904,16 +904,38 @@ class DiscordVoiceWebSocket:
         data: Dict[str, Any] = msg["d"]
         self.seq_ack = data.get("seq", self.seq_ack)
 
+        vc = self._connection
+
         if op == self.READY:
             await self.initial_connection(data)
+
         elif op == self.HEARTBEAT_ACK:
             if self._keep_alive is not None:
                 self._keep_alive.ack()
+
         elif op == self.RESUMED:
             _log.info("Voice RESUME succeeded.")
+
         elif op == self.SESSION_DESCRIPTION:
             self._connection.mode = data["mode"]
             await self.load_secret_key(data)
+
+        # ---- DAVE / MLS handling ----
+        elif op == 15:  # proposals
+            if vc._dave_session is not None and "proposals" in data:
+                proposals = bytes(data["proposals"])
+                vc._dave_session.process_proposals(proposals, {str(vc.user.id)})
+
+        elif op == 18:  # commit
+            if vc._dave_session is not None and "commit" in data:
+                commit = bytes(data["commit"])
+                vc._dave_session.process_commit(commit)
+
+        elif op == 20:  # welcome
+            if vc._dave_session is not None and "welcome" in data:
+                welcome = bytes(data["welcome"])
+                vc._dave_session.process_welcome(welcome, {str(vc.user.id)})
+
         elif op == self.HELLO:
             interval = data["heartbeat_interval"] / 1000.0
             self._keep_alive = VoiceKeepAliveHandler(ws=self, interval=min(interval, 5.0))
@@ -922,7 +944,6 @@ class DiscordVoiceWebSocket:
 
         if self._hook is not None:
             await self._hook(self, msg)
-
     async def initial_connection(self, data: Dict[str, Any]) -> None:
         state = self._connection
         state.ssrc = data["ssrc"]
