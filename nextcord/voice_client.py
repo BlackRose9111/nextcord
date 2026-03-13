@@ -349,36 +349,24 @@ class VoiceClient(VoiceProtocol):
         return header + box.encrypt(bytes(data), bytes(header), bytes(nonce)).ciphertext + nonce[:4]
 
     def dave_encrypt_frame(self, opus_frame: bytes) -> bytes:
-        """
-        Minimal DAVE secure frame implementation.
-        Encrypts an Opus frame before RTP packetization.
-        """
-
-        # AEAD cipher using the session key
         box = nacl.secret.Aead(bytes(self.secret_key))
 
-        # 24-byte nonce required by XChaCha20
         nonce = bytearray(24)
-
-        # incrementing frame counter (same pattern used by Discord transport layer)
         nonce[:4] = struct.pack(">I", self._incr_nonce)
         self.checked_add("_incr_nonce", 1, 4294967295)
 
-        # encrypt the opus frame
         encrypted = box.encrypt(opus_frame, None, bytes(nonce))
 
         frame = bytearray()
 
-        # frame type: audio
+        # audio frame type
         frame.append(0x00)
 
-        # include the nonce fragment used by the receiver
-        frame.extend(nonce[:4])
-
-        # encrypted payload + auth tag
+        # encrypted payload + tag
         frame.extend(encrypted.ciphertext)
 
         return bytes(frame)
+
     async def connect(self, *, reconnect: bool, timeout: float) -> None:
         _log.info("Connecting to voice...")
         self.timeout = timeout
