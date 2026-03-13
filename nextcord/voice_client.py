@@ -340,6 +340,11 @@ class VoiceClient(VoiceProtocol):
         ws = await DiscordVoiceWebSocket.from_client(self)
         self._connected.clear()
 
+
+
+        while ws.secret_key is None:
+            await ws.poll_event()
+
         # --- DAVE initialization ---
         self._dave_session = dave.Session()
         self._dave_session.init(1, self.ssrc, str(self.user.id))
@@ -348,10 +353,6 @@ class VoiceClient(VoiceProtocol):
         self._dave_encryptor.assign_ssrc_to_codec(self.ssrc, dave.Codec.opus)
 
         print("DAVE initialized")
-
-        while ws.secret_key is None:
-            await ws.poll_event()
-
         self._connected.set()
         return ws
 
