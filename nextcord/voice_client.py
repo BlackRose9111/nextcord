@@ -45,7 +45,6 @@ if TYPE_CHECKING:
     )
     from .user import ClientUser
 
-
 has_nacl: bool
 
 try:
@@ -59,7 +58,6 @@ __all__ = (
     "VoiceProtocol",
     "VoiceClient",
 )
-
 
 _log = logging.getLogger(__name__)
 
@@ -208,7 +206,6 @@ class VoiceClient(VoiceProtocol):
     ip: str
     port: int
 
-
     def __init__(self, client: Client, channel: abc.Connectable) -> None:
         if not has_nacl:
             raise RuntimeError("PyNaCl library needed in order to use voice")
@@ -243,7 +240,6 @@ class VoiceClient(VoiceProtocol):
         # DAVE support
         self._dave_session = None
         self._dave_encryptor = None
-
 
     warn_nacl = not has_nacl
     supported_modes: Tuple[SupportedModes, ...] = ("aead_xchacha20_poly1305_rtpsize",)
@@ -320,7 +316,8 @@ class VoiceClient(VoiceProtocol):
         await self.channel.guild.change_voice_state(channel=self.channel)  # type: ignore
 
     async def voice_disconnect(self) -> None:
-        _log.info("The voice handshake is being terminated for Channel ID %s (Guild ID %s)", self.channel.id, self.guild.id)  # type: ignore
+        _log.info("The voice handshake is being terminated for Channel ID %s (Guild ID %s)", self.channel.id,
+                  self.guild.id)  # type: ignore
         await self.channel.guild.change_voice_state(channel=None)  # type: ignore
 
     def prepare_handshake(self) -> None:
@@ -340,8 +337,6 @@ class VoiceClient(VoiceProtocol):
         ws = await DiscordVoiceWebSocket.from_client(self)
         self._connected.clear()
 
-
-
         while ws.secret_key is None:
             await ws.poll_event()
 
@@ -352,7 +347,7 @@ class VoiceClient(VoiceProtocol):
         self._dave_encryptor = dave.Encryptor()
         self._dave_encryptor.assign_ssrc_to_codec(self.ssrc, dave.Codec.opus)
 
-        print("DAVE initialized")
+        print("DAVE initialized with SSRC:", self.ssrc)
         self._connected.set()
         return ws
 
@@ -363,8 +358,6 @@ class VoiceClient(VoiceProtocol):
         self.checked_add("_incr_nonce", 1, 4294967295)
 
         return header + box.encrypt(bytes(data), bytes(header), bytes(nonce)).ciphertext + nonce[:4]
-
-
 
     async def connect(self, *, reconnect: bool, timeout: float) -> None:
         _log.info("Connecting to voice...")
@@ -575,7 +568,7 @@ class VoiceClient(VoiceProtocol):
         return header + box.encrypt(bytes(data), bytes(nonce)).ciphertext + nonce[:4]
 
     def play(
-        self, source: AudioSource, *, after: Optional[Callable[[Optional[Exception]], Any]] = None
+            self, source: AudioSource, *, after: Optional[Callable[[Optional[Exception]], Any]] = None
     ) -> None:
         """Plays an :class:`AudioSource`.
 
@@ -687,7 +680,7 @@ class VoiceClient(VoiceProtocol):
         encoded_data = self.encoder.encode(data, self.encoder.SAMPLES_PER_FRAME) if encode else data
 
         # --- DAVE encryption ---
-        print(self._dave_session.has_established_group())
+
         if (
                 self._dave_encryptor is not None
                 and self._dave_session is not None
@@ -697,6 +690,8 @@ class VoiceClient(VoiceProtocol):
             if encrypted is not None:
                 encoded_data = encrypted
         packet = self._get_voice_packet(encoded_data)
+
+        print(self._dave_session.has_established_group())
 
         try:
             self.socket.sendto(packet, (self.endpoint_ip, self.voice_port))
