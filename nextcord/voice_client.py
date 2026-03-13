@@ -349,7 +349,7 @@ class VoiceClient(VoiceProtocol):
         return header + box.encrypt(bytes(data), bytes(header), bytes(nonce)).ciphertext + nonce[:4]
 
     def dave_encrypt_frame(self, opus_frame: bytes) -> bytes:
-        print("DAVE FRAME HOOK HIT")
+        print("DAVE FRAME SIZE:", len(opus_frame))
         return opus_frame
     async def connect(self, *, reconnect: bool, timeout: float) -> None:
         _log.info("Connecting to voice...")
