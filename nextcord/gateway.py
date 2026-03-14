@@ -1031,7 +1031,7 @@ class DiscordVoiceWebSocket:
             print("VOICE WS BINARY:", msg.data)
             vc = self._connection
             if vc._dave_session is not None:
-                result = vc._dave_session.process_commit(msg.data)
+                result = vc._dave_session.process_proposals(msg.data, {str(vc.user.id)})
                 print("MLS commit result:", result)
 
         elif msg.type is aiohttp.WSMsgType.ERROR:
