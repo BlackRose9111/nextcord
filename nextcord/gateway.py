@@ -1035,12 +1035,30 @@ class DiscordVoiceWebSocket:
         if msg.type is aiohttp.WSMsgType.TEXT:
             await self.received_message(utils.from_json(msg.data))
 
+
+
         elif msg.type is aiohttp.WSMsgType.BINARY:
             print("VOICE WS BINARY:", msg.data)
             vc = self._connection
-            if vc._dave_session is not None:
+            if vc._dave_session is None:
+                return
+            try:
                 result = vc._dave_session.process_proposals(msg.data, {str(vc.user.id)})
+                print("MLS proposals result:", result)
+                return
+            except Exception:
+                pass
+            try:
+                result = vc._dave_session.process_commit(msg.data)
                 print("MLS commit result:", result)
+                return
+            except Exception:
+                pass
+            try:
+                result = vc._dave_session.process_welcome(msg.data, {str(vc.user.id)})
+                print("MLS welcome result:", result)
+            except Exception as e:
+                print("MLS binary frame unrecognized:", e)
 
         elif msg.type is aiohttp.WSMsgType.ERROR:
             _log.debug("Received %s", msg)
