@@ -1045,17 +1045,21 @@ class DiscordVoiceWebSocket:
             try:
                 result = vc._dave_session.process_proposals(msg.data, {str(vc.user.id)})
                 print("MLS proposals result:", result)
-                return
+                if result is not None:
+                    return
             except Exception:
                 pass
             try:
                 result = vc._dave_session.process_commit(msg.data)
                 print("MLS commit result:", result)
-                return
+                if result is not None:
+                    return
             except Exception:
                 pass
             try:
                 result = vc._dave_session.process_welcome(msg.data, {str(vc.user.id)})
+                if result is not None:
+                    return
                 print("MLS welcome result:", result)
             except Exception as e:
                 print("MLS binary frame unrecognized:", e)
