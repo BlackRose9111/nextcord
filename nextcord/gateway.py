@@ -1015,7 +1015,11 @@ class DiscordVoiceWebSocket:
                 int(vc.media_session_id[:8], 16),
                 str(vc.user.id)
             )
+
+            vc._dave_session.set_external_sender(bytes(self.secret_key))
+
             print("DAVE session initialized")
+
             key_package = vc._dave_session.get_marshalled_key_package()
 
             await self.send_as_json({
