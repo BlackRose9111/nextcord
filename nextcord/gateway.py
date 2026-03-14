@@ -1022,17 +1022,22 @@ class DiscordVoiceWebSocket:
         await self.speak(SpeakingState.none)
 
     async def poll_event(self) -> None:
-        # This exception is handled up the chain
         msg = await asyncio.wait_for(self.ws.receive(), timeout=30.0)
+
         if msg.type is aiohttp.WSMsgType.TEXT:
             await self.received_message(utils.from_json(msg.data))
+
+        elif msg.type is aiohttp.WSMsgType.BINARY:
+            print("VOICE WS BINARY:", msg.data)
+
         elif msg.type is aiohttp.WSMsgType.ERROR:
             _log.debug("Received %s", msg)
             raise ConnectionClosed(self.ws, shard_id=None) from msg.data
+
         elif msg.type in (
-            aiohttp.WSMsgType.CLOSED,
-            aiohttp.WSMsgType.CLOSE,
-            aiohttp.WSMsgType.CLOSING,
+                aiohttp.WSMsgType.CLOSED,
+                aiohttp.WSMsgType.CLOSE,
+                aiohttp.WSMsgType.CLOSING,
         ):
             _log.debug("Received %s", msg)
             raise ConnectionClosed(self.ws, shard_id=None, code=self._close_code)
