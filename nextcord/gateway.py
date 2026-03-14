@@ -1016,6 +1016,14 @@ class DiscordVoiceWebSocket:
                 str(vc.user.id)
             )
             print("DAVE session initialized")
+            key_package = vc._dave_session.get_marshalled_key_package()
+
+            await self.send_as_json({
+                "op": 19,
+                "d": {
+                    "key_package": list(key_package)
+                }
+            })
             vc._dave_encryptor = dave.Encryptor()
             vc._dave_encryptor.assign_ssrc_to_codec(vc.ssrc, dave.Codec.opus)
 
