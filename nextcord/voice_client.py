@@ -238,6 +238,7 @@ class VoiceClient(VoiceProtocol):
 
     warn_nacl = not has_nacl
     supported_modes: Tuple[SupportedModes, ...] = (
+        "dave",
         "xsalsa20_poly1305_lite",
         "xsalsa20_poly1305_suffix",
         "xsalsa20_poly1305",
@@ -525,6 +526,8 @@ class VoiceClient(VoiceProtocol):
         encrypt_packet = getattr(self, "_encrypt_" + self.mode)
         return encrypt_packet(header, data)
 
+    def _encrypt_dave(self, header: bytes, data) -> bytes:
+        raise NotImplementedError("DAVE encryption not implemented yet")
     def _encrypt_xsalsa20_poly1305(self, header: bytes, data) -> bytes:
         box = nacl.secret.SecretBox(bytes(self.secret_key))
         nonce = bytearray(24)
