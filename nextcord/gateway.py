@@ -905,10 +905,7 @@ class DiscordVoiceWebSocket:
     async def received_message(self, msg: Dict[str, Any]) -> None:
         _log.debug("Voice websocket frame received: %s", msg)
 
-        # if the message is plaintext:
-        if not isinstance(msg, str):
-            #the message is binary, convert it to dict
-            msg = utils.from_json(msg)
+
         op: int = msg["op"]
         data: Dict[str, Any] = msg["d"]
         self.seq_ack = data.get("seq", self.seq_ack)
@@ -1002,6 +999,10 @@ class DiscordVoiceWebSocket:
         msg = await asyncio.wait_for(self.ws.receive(), timeout=30.0)
         if msg.type is aiohttp.WSMsgType.TEXT:
             await self.received_message(utils.from_json(msg.data))
+        elif msg.type is aiohttp.WSMsgType.BINARY:
+            # if it is binary, we will convert it to text and back to json
+            await self.received_message(utils.from_json(msg.data.decode("utf-8")))
+
         elif msg.type is aiohttp.WSMsgType.ERROR:
             _log.debug("Received %s", msg)
             raise ConnectionClosed(self.ws, shard_id=None) from msg.data
