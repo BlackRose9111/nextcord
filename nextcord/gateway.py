@@ -838,6 +838,7 @@ class DiscordVoiceWebSocket:
         await self.send_as_json(payload)
 
     async def identify(self) -> None:
+        import davey
         state = self._connection
         payload = {
             "op": self.IDENTIFY,
@@ -846,7 +847,7 @@ class DiscordVoiceWebSocket:
                 "user_id": str(state.user.id),
                 "session_id": state.session_id,
                 "token": state.token,
-                "max_dave_protocol_version":1
+                "max_dave_protocol_version": davey.DAVE_PROTOCOL_VERSION
             },
         }
         await self.send_as_json(payload)
@@ -930,7 +931,10 @@ class DiscordVoiceWebSocket:
         else:
             # if message is binary we will process it for dave.
             _log.debug("Received binary message on voice websocket, ignoring.")
-            print("Binary message received on voice websocket, ignoring.")
+            print(f"Binary message received on voice websocket, ignoring. {msg}")
+            # we need to read the binary message, understand the opcode and then process it:
+            #convert binary message to dict:
+
 
     async def initial_connection(self, data: Dict[str, Any]) -> None:
         state = self._connection
