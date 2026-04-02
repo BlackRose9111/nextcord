@@ -910,6 +910,8 @@ class DiscordVoiceWebSocket:
         data: Dict[str, Any] = msg["d"]
         self.seq_ack = data.get("seq", self.seq_ack)
 
+
+        print(f"Voice websocket frame received: {msg} and the message type is {type(msg)}")
         if op == self.READY:
             await self.initial_connection(data)
         elif op == self.HEARTBEAT_ACK:
@@ -1001,7 +1003,7 @@ class DiscordVoiceWebSocket:
             await self.received_message(utils.from_json(msg.data))
         elif msg.type is aiohttp.WSMsgType.BINARY:
             # if it is binary, we will convert it to text and back to json
-            await self.received_message(utils.from_json(msg.data.decode("utf-8")))
+            await self.received_message(utils.from_json(str(msg.data)))
 
         elif msg.type is aiohttp.WSMsgType.ERROR:
             _log.debug("Received %s", msg)
