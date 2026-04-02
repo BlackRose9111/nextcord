@@ -15,11 +15,12 @@ from collections import deque, namedtuple
 from typing import TYPE_CHECKING, Awaitable, Callable, Dict, List, Optional, Union, cast
 
 import aiohttp
-
+import davey
 from . import utils
 from .activity import BaseActivity
 from .enums import SpeakingState
 from .errors import ConnectionClosed, InvalidArgument
+from .voice_state import VoiceConnectionState
 
 if TYPE_CHECKING:
     from typing import Any, Protocol
@@ -29,9 +30,9 @@ if TYPE_CHECKING:
     from .types.activity import Activity
     from .voice_client import VoiceClient
 
+
     class VariadicArgNone(Protocol):
         def __call__(self, *args: Any) -> None: ...
-
 
 _log = logging.getLogger(__name__)
 
@@ -286,7 +287,7 @@ class DiscordWebSocket:
         _max_heartbeat_timeout: float
 
     def __init__(
-        self, socket: aiohttp.ClientWebSocketResponse, *, loop: asyncio.AbstractEventLoop
+            self, socket: aiohttp.ClientWebSocketResponse, *, loop: asyncio.AbstractEventLoop
     ) -> None:
         self.socket: aiohttp.ClientWebSocketResponse = socket
         self.loop: asyncio.AbstractEventLoop = loop
@@ -323,16 +324,16 @@ class DiscordWebSocket:
 
     @classmethod
     async def from_client(
-        cls,
-        client: Client,
-        *,
-        initial: bool = False,
-        gateway: Optional[str] = None,
-        shard_id: Optional[int] = None,
-        session: Optional[str] = None,
-        sequence: Optional[int] = None,
-        resume: bool = False,
-        format_gateway: bool = False,
+            cls,
+            client: Client,
+            *,
+            initial: bool = False,
+            gateway: Optional[str] = None,
+            shard_id: Optional[int] = None,
+            session: Optional[str] = None,
+            sequence: Optional[int] = None,
+            resume: bool = False,
+            format_gateway: bool = False,
     ):
         """Creates a main websocket for Discord from a :class:`Client`.
 
@@ -380,7 +381,7 @@ class DiscordWebSocket:
         return ws
 
     def wait_for(
-        self, event: str, predicate: Callable, result: Optional[Callable[[Any], Any]] = None
+            self, event: str, predicate: Callable, result: Optional[Callable[[Any], Any]] = None
     ) -> asyncio.Future:
         """Waits for a DISPATCH'd event that meets the predicate.
 
@@ -609,9 +610,9 @@ class DiscordWebSocket:
                 _log.debug("Received error %s", msg)
                 raise WebSocketClosure
             elif msg.type in (
-                aiohttp.WSMsgType.CLOSED,
-                aiohttp.WSMsgType.CLOSING,
-                aiohttp.WSMsgType.CLOSE,
+                    aiohttp.WSMsgType.CLOSED,
+                    aiohttp.WSMsgType.CLOSING,
+                    aiohttp.WSMsgType.CLOSE,
             ):
                 _log.debug("Received %s", msg)
                 raise WebSocketClosure
@@ -658,11 +659,11 @@ class DiscordWebSocket:
                 raise ConnectionClosed(self.socket, shard_id=self.shard_id) from exc
 
     async def change_presence(
-        self,
-        *,
-        activity: Optional[BaseActivity] = None,
-        status: Optional[str] = None,
-        since: float = 0.0,
+            self,
+            *,
+            activity: Optional[BaseActivity] = None,
+            status: Optional[str] = None,
+            since: float = 0.0,
     ) -> None:
         if activity is not None:
             if not isinstance(activity, BaseActivity):
@@ -684,14 +685,14 @@ class DiscordWebSocket:
         await self.send(sent)
 
     async def request_chunks(
-        self,
-        guild_id: int,
-        query: Optional[str] = None,
-        *,
-        limit: int,
-        user_ids: Optional[List[int]] = None,
-        presences: bool = False,
-        nonce: Optional[str] = None,
+            self,
+            guild_id: int,
+            query: Optional[str] = None,
+            *,
+            limit: int,
+            user_ids: Optional[List[int]] = None,
+            presences: bool = False,
+            nonce: Optional[str] = None,
     ) -> None:
         payload = {
             "op": self.REQUEST_MEMBERS,
@@ -710,11 +711,11 @@ class DiscordWebSocket:
         await self.send_as_json(payload)
 
     async def voice_state(
-        self,
-        guild_id: int,
-        channel_id: Optional[int],
-        self_mute: bool = False,
-        self_deaf: bool = False,
+            self,
+            guild_id: int,
+            channel_id: Optional[int],
+            self_mute: bool = False,
+            self_deaf: bool = False,
     ) -> None:
         payload = {
             "op": self.VOICE_STATE,
@@ -794,17 +795,17 @@ class DiscordVoiceWebSocket:
     MLS_INVALID_COMMIT_WELCOME = 31
 
     if TYPE_CHECKING:
-        _connection: VoiceClient
+        _connection: VoiceConnectionState
         gateway: str
         _max_heartbeat_timeout: float
         thread_id: int
 
     def __init__(
-        self,
-        socket: DiscordClientWebSocketResponse,
-        loop: asyncio.AbstractEventLoop,
-        *,
-        hook: Optional[Callable[..., Awaitable[None]]] = None,
+            self,
+            socket: DiscordClientWebSocketResponse,
+            loop: asyncio.AbstractEventLoop,
+            *,
+            hook: Optional[Callable[..., Awaitable[None]]] = None,
     ) -> None:
         self.ws: DiscordClientWebSocketResponse = socket
         self.loop: asyncio.AbstractEventLoop = loop
@@ -813,16 +814,31 @@ class DiscordVoiceWebSocket:
         self.secret_key: Optional[List[int]] = None
         self.seq_ack: int = -1
         self._hook: Optional[Callable[..., Awaitable[None]]] = (
-            hook or getattr(self, "_hook", None) or self._default_hook
+                hook or getattr(self, "_hook", None) or self._default_hook
         )
 
-    async def _default_hook(self, *args: Any) -> None: ...
+    async def _default_hook(self, *args: Any) -> None:
+        ...
 
     async def send_as_json(self, data: Any) -> None:
         _log.debug("Sending voice websocket frame: %s.", data)
         await self.ws.send_str(utils.to_json(data))
 
     send_heartbeat = send_as_json
+
+    async def send_binary(self, opcode: int, data: bytes) -> None:
+        _log.debug('Sending voice websocket binary frame: opcode=%s size=%d', opcode, len(data))
+        await self.ws.send_bytes(bytes([opcode]) + data)
+
+    async def send_transition_ready(self, transition_id: int):
+        payload = {
+            'op': DiscordVoiceWebSocket.DAVE_TRANSITION_READY,
+            'd': {
+                'transition_id': transition_id,
+            },
+        }
+
+        await self.send_as_json(payload)
 
     async def resume(self) -> None:
         state = self._connection
@@ -854,11 +870,11 @@ class DiscordVoiceWebSocket:
 
     @classmethod
     async def from_client(
-        cls,
-        client: VoiceClient,
-        *,
-        resume: bool = False,
-        hook: Optional[Callable[..., Awaitable[None]]] = None,
+            cls,
+            client: VoiceClient,
+            *,
+            resume: bool = False,
+            hook: Optional[Callable[..., Awaitable[None]]] = None,
     ):
         """Creates a voice websocket for the :class:`VoiceClient`."""
         gateway = f"wss://{client.endpoint}/?v=8"
@@ -902,14 +918,56 @@ class DiscordVoiceWebSocket:
 
         await self.send_as_json(payload)
 
+    async def received_binary_message(self, msg: bytes) -> None:
+        self.seq_ack = struct.unpack_from('>H', msg, 0)[0]
+        op = msg[2]
+        _log.debug('Voice websocket binary frame received: %d bytes; seq=%s op=%s', len(msg), self.seq_ack, op)
+        state = self._connection
+
+        if state.dave_session is None:
+            return
+
+        if op == self.MLS_EXTERNAL_SENDER:
+            state.dave_session.set_external_sender(msg[3:])
+            _log.debug('Set MLS external sender')
+        elif op == self.MLS_PROPOSALS:
+            optype = msg[3]
+            result = state.dave_session.process_proposals(
+                davey.ProposalsOperationType.append if optype == 0 else davey.ProposalsOperationType.revoke, msg[4:]
+            )
+            if isinstance(result, davey.CommitWelcome):
+                await self.send_binary(
+                    DiscordVoiceWebSocket.MLS_COMMIT_WELCOME,
+                    result.commit + result.welcome if result.welcome else result.commit,
+                )
+            _log.debug('MLS proposals processed')
+        elif op == self.MLS_ANNOUNCE_COMMIT_TRANSITION:
+            transition_id = struct.unpack_from('>H', msg, 3)[0]
+            try:
+                state.dave_session.process_commit(msg[5:])
+                if transition_id != 0:
+                    state.dave_pending_transitions[transition_id] = state.dave_protocol_version
+                    await self.send_transition_ready(transition_id)
+                _log.debug('MLS commit processed for transition id %d', transition_id)
+            except Exception:
+                await state._recover_from_invalid_commit(transition_id)
+        elif op == self.MLS_WELCOME:
+            transition_id = struct.unpack_from('>H', msg, 3)[0]
+            try:
+                state.dave_session.process_welcome(msg[5:])
+                if transition_id != 0:
+                    state.dave_pending_transitions[transition_id] = state.dave_protocol_version
+                    await self.send_transition_ready(transition_id)
+                _log.debug('MLS welcome processed for transition id %d', transition_id)
+            except Exception:
+                await state._recover_from_invalid_commit(transition_id)
+
     async def received_message(self, msg: Dict[str, Any]) -> None:
         _log.debug("Voice websocket frame received: %s", msg)
-
 
         op: int = msg["op"]
         data: Dict[str, Any] = msg["d"]
         self.seq_ack = data.get("seq", self.seq_ack)
-
 
         print(f"Voice websocket frame received: {msg} and the message type is {type(msg)}")
         if op == self.READY:
@@ -921,7 +979,17 @@ class DiscordVoiceWebSocket:
             _log.info("Voice RESUME succeeded.")
         elif op == self.SESSION_DESCRIPTION:
             self._connection.mode = data["mode"]
+            print(f"Received SESSION_DESCRIPTION: {data}, dave version: {data.get('dave_protocol_version')}")
             await self.load_secret_key(data)
+            self._connection.dave_protocol_version = data['dave_protocol_version']
+            if data['dave_protocol_version'] > 0:
+                await self._connection.reinit_dave_session()
+            self._connection.dave_protocol_version = data['dave_protocol_version']
+            if data['dave_protocol_version'] > 0:
+                await self._connection.reinit_dave_session()
+
+
+
         elif op == self.HELLO:
             interval = data["heartbeat_interval"] / 1000.0
             self._keep_alive = VoiceKeepAliveHandler(ws=self, interval=min(interval, 5.0))
@@ -930,13 +998,9 @@ class DiscordVoiceWebSocket:
             _log.info("A user has disconnected from voice: %s", data)
         elif op == self.CLIENT_CONNECT:
             _log.info("A user has connected to voice: %s", data)
-        elif op in (self.DAVE_PREPARE_TRANSITION, self.DAVE_EXECUTE_TRANSITION, self.DAVE_TRANSITION_READY, self.DAVE_PREPARE_EPOCH):
-            _log.info("Received DAVE transition event: %s", msg)
-            print("Received DAVE transition event: %s", msg)
 
         if self._hook is not None:
             await self._hook(self, msg)
-
 
     async def initial_connection(self, data: Dict[str, Any]) -> None:
         state = self._connection
@@ -1003,15 +1067,15 @@ class DiscordVoiceWebSocket:
             await self.received_message(utils.from_json(msg.data))
         elif msg.type is aiohttp.WSMsgType.BINARY:
             # if it is binary, we will convert it to text and back to json
-            await self.received_message(utils.from_json(str(msg.data)))
+            await self.received_binary_message(msg.data)
 
         elif msg.type is aiohttp.WSMsgType.ERROR:
             _log.debug("Received %s", msg)
             raise ConnectionClosed(self.ws, shard_id=None) from msg.data
         elif msg.type in (
-            aiohttp.WSMsgType.CLOSED,
-            aiohttp.WSMsgType.CLOSE,
-            aiohttp.WSMsgType.CLOSING,
+                aiohttp.WSMsgType.CLOSED,
+                aiohttp.WSMsgType.CLOSE,
+                aiohttp.WSMsgType.CLOSING,
         ):
             _log.debug("Received %s", msg)
             raise ConnectionClosed(self.ws, shard_id=None, code=self._close_code)

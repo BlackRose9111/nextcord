@@ -549,37 +549,16 @@ class VoiceClient(VoiceProtocol):
         return header + box.encrypt(bytes(data), bytes(nonce)).ciphertext + nonce[:4]
 
     def _encrypt_aead_xchacha20_poly1305_rtpsize(self, header: bytes, data) -> bytes:
-        from nacl.bindings import crypto_aead_xchacha20poly1305_ietf_encrypt
-        # --- Validate inputs ---
-        if len(header) != 12:
-            raise ValueError("RTP header must be exactly 12 bytes")
-
-        if len(self.secret_key) != 32:
-            raise ValueError("Secret key must be 32 bytes")
-
-        # --- Step 1: get and increment nonce counter ---
-        nonce_counter = self._lite_nonce
-        self._lite_nonce = (self._lite_nonce + 1) & 0xFFFFFFFF
-
-        # --- Step 2: build 24-byte nonce ---
-        # First 4 bytes = counter, remaining 20 = zero
+        # Esentially the same as _lite
+        # Uses an incrementing 32-bit integer which is appended to the payload
+        # The only other difference is we require AEAD with Additional Authenticated Data (the header)
+        box = nacl.secret.Aead(bytes(self.secret_key))
         nonce = bytearray(24)
-        nonce[0:4] = nonce_counter.to_bytes(4, "big")
 
-        # --- Step 3: encrypt ---
-        ciphertext = crypto_aead_xchacha20poly1305_ietf_encrypt(
-            message=data,
-            aad=header,
-            nonce=bytes(nonce),
-            key=bytes(self.secret_key),
-        )
+        nonce[:4] = struct.pack('>I', self._incr_nonce)
+        self.checked_add('_incr_nonce', 1, 4294967295)
 
-        # ciphertext = encrypted data + 16-byte auth tag
-
-        # --- Step 4: append nonce suffix (CRITICAL) ---
-        return header + ciphertext + nonce[0:4]
-
-
+        return header + box.encrypt(bytes(data), bytes(header), bytes(nonce)).ciphertext + nonce[:4]
 
     def play(
         self, source: AudioSource, *, after: Optional[Callable[[Optional[Exception]], Any]] = None
@@ -701,3 +680,4 @@ class VoiceClient(VoiceProtocol):
             )
 
         self.checked_add("timestamp", opus.Encoder.SAMPLES_PER_FRAME, 4294967295)
+
