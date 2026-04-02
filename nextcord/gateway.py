@@ -906,34 +906,37 @@ class DiscordVoiceWebSocket:
         _log.debug("Voice websocket frame received: %s", msg)
 
         # if the message is plaintext:
-        if isinstance(msg, str):
-            op: int = msg["op"]
-            data: Dict[str, Any] = msg["d"]
-            self.seq_ack = data.get("seq", self.seq_ack)
+        if not isinstance(msg, str):
+            #the message is binary, convert it to dict
+            msg = utils.from_json(msg)
+        op: int = msg["op"]
+        data: Dict[str, Any] = msg["d"]
+        self.seq_ack = data.get("seq", self.seq_ack)
 
-            if op == self.READY:
-                await self.initial_connection(data)
-            elif op == self.HEARTBEAT_ACK:
-                if self._keep_alive is not None:
-                    self._keep_alive.ack()
-            elif op == self.RESUMED:
-                _log.info("Voice RESUME succeeded.")
-            elif op == self.SESSION_DESCRIPTION:
-                self._connection.mode = data["mode"]
-                await self.load_secret_key(data)
-            elif op == self.HELLO:
-                interval = data["heartbeat_interval"] / 1000.0
-                self._keep_alive = VoiceKeepAliveHandler(ws=self, interval=min(interval, 5.0))
-                self._keep_alive.start()
+        if op == self.READY:
+            await self.initial_connection(data)
+        elif op == self.HEARTBEAT_ACK:
+            if self._keep_alive is not None:
+                self._keep_alive.ack()
+        elif op == self.RESUMED:
+            _log.info("Voice RESUME succeeded.")
+        elif op == self.SESSION_DESCRIPTION:
+            self._connection.mode = data["mode"]
+            await self.load_secret_key(data)
+        elif op == self.HELLO:
+            interval = data["heartbeat_interval"] / 1000.0
+            self._keep_alive = VoiceKeepAliveHandler(ws=self, interval=min(interval, 5.0))
+            self._keep_alive.start()
+        elif op == self.CLIENT_DISCONNECT:
+            _log.info("A user has disconnected from voice: %s", data)
+        elif op == self.CLIENT_CONNECT:
+            _log.info("A user has connected to voice: %s", data)
+        elif op in (self.DAVE_PREPARE_TRANSITION, self.DAVE_EXECUTE_TRANSITION, self.DAVE_TRANSITION_READY, self.DAVE_PREPARE_EPOCH):
+            _log.info("Received DAVE transition event: %s", msg)
+            print("Received DAVE transition event: %s", msg)
 
-            if self._hook is not None:
-                await self._hook(self, msg)
-        else:
-            # if message is binary we will process it for dave.
-            _log.debug("Received binary message on voice websocket, ignoring.")
-            print(f"Binary message received on voice websocket, ignoring. {msg}")
-            # we need to read the binary message, understand the opcode and then process it:
-            #convert binary message to dict:
+        if self._hook is not None:
+            await self._hook(self, msg)
 
 
     async def initial_connection(self, data: Dict[str, Any]) -> None:
