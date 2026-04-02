@@ -781,6 +781,17 @@ class DiscordVoiceWebSocket:
     RESUMED = 9
     CLIENT_CONNECT = 12
     CLIENT_DISCONNECT = 13
+    DAVE_PREPARE_TRANSITION = 21
+    DAVE_EXECUTE_TRANSITION = 22
+    DAVE_TRANSITION_READY = 23
+    DAVE_PREPARE_EPOCH = 24
+    MLS_EXTERNAL_SENDER = 25
+    MLS_KEY_PACKAGE = 26
+    MLS_PROPOSALS = 27
+    MLS_COMMIT_WELCOME = 28
+    MLS_ANNOUNCE_COMMIT_TRANSITION = 29
+    MLS_WELCOME = 30
+    MLS_INVALID_COMMIT_WELCOME = 31
 
     if TYPE_CHECKING:
         _connection: VoiceClient
@@ -835,6 +846,7 @@ class DiscordVoiceWebSocket:
                 "user_id": str(state.user.id),
                 "session_id": state.session_id,
                 "token": state.token,
+                "max_dave_protocol_version":1
             },
         }
         await self.send_as_json(payload)
@@ -891,27 +903,34 @@ class DiscordVoiceWebSocket:
 
     async def received_message(self, msg: Dict[str, Any]) -> None:
         _log.debug("Voice websocket frame received: %s", msg)
-        op: int = msg["op"]
-        data: Dict[str, Any] = msg["d"]
-        self.seq_ack = data.get("seq", self.seq_ack)
 
-        if op == self.READY:
-            await self.initial_connection(data)
-        elif op == self.HEARTBEAT_ACK:
-            if self._keep_alive is not None:
-                self._keep_alive.ack()
-        elif op == self.RESUMED:
-            _log.info("Voice RESUME succeeded.")
-        elif op == self.SESSION_DESCRIPTION:
-            self._connection.mode = data["mode"]
-            await self.load_secret_key(data)
-        elif op == self.HELLO:
-            interval = data["heartbeat_interval"] / 1000.0
-            self._keep_alive = VoiceKeepAliveHandler(ws=self, interval=min(interval, 5.0))
-            self._keep_alive.start()
+        # if the message is plaintext:
+        if isinstance(msg, str):
+            op: int = msg["op"]
+            data: Dict[str, Any] = msg["d"]
+            self.seq_ack = data.get("seq", self.seq_ack)
 
-        if self._hook is not None:
-            await self._hook(self, msg)
+            if op == self.READY:
+                await self.initial_connection(data)
+            elif op == self.HEARTBEAT_ACK:
+                if self._keep_alive is not None:
+                    self._keep_alive.ack()
+            elif op == self.RESUMED:
+                _log.info("Voice RESUME succeeded.")
+            elif op == self.SESSION_DESCRIPTION:
+                self._connection.mode = data["mode"]
+                await self.load_secret_key(data)
+            elif op == self.HELLO:
+                interval = data["heartbeat_interval"] / 1000.0
+                self._keep_alive = VoiceKeepAliveHandler(ws=self, interval=min(interval, 5.0))
+                self._keep_alive.start()
+
+            if self._hook is not None:
+                await self._hook(self, msg)
+        else:
+            # if message is binary we will process it for dave.
+            _log.debug("Received binary message on voice websocket, ignoring.")
+            print("Binary message received on voice websocket, ignoring.")
 
     async def initial_connection(self, data: Dict[str, Any]) -> None:
         state = self._connection
